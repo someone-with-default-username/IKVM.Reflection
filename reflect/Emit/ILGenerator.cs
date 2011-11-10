@@ -557,11 +557,11 @@ namespace IKVM.Reflection.Emit
 			// if the label has already been marked, we can emit the branch offset directly
 			if (labels[label.Index] != -1)
 			{
-				if (labelStackHeight[label.Index] != flowStackHeight && (labelStackHeight[label.Index] != 0 || flowStackHeight != -1))
-				{
-					// the "backward branch constraint" prohibits this, so we don't need to support it
-					throw new NotSupportedException("'Backward branch constraints' violated");
-				}
+				//if (labelStackHeight[label.Index] != flowStackHeight && (labelStackHeight[label.Index] != 0 || flowStackHeight != -1))
+				//{
+				//  // the "backward branch constraint" prohibits this, so we don't need to support it
+				//  throw new NotSupportedException("'Backward branch constraints' violated");
+				//}
 				if (opc.OperandType == OperandType.ShortInlineBrTarget)
 				{
 					WriteByteBranchOffset(labels[label.Index] - (code.Position + 1));
@@ -612,11 +612,11 @@ namespace IKVM.Reflection.Emit
 				code.Write(label.Index);
 				if (this.labels[label.Index] != -1)
 				{
-					if (labelStackHeight[label.Index] != stackHeight)
-					{
-						// the "backward branch constraint" prohibits this, so we don't need to support it
-						throw new NotSupportedException();
-					}
+					//if (labelStackHeight[label.Index] != stackHeight)
+					//{
+					//  // the "backward branch constraint" prohibits this, so we don't need to support it
+					//  throw new NotSupportedException();
+					//}
 				}
 				else
 				{
@@ -948,27 +948,28 @@ namespace IKVM.Reflection.Emit
 
 			if (moduleBuilder.symbolWriter != null)
 			{
-				if (sequencePoints.Count != 0)
+				int pos = 0;
+				while (pos < sequencePoints.Count)
 				{
-					ISymbolDocumentWriter document = sequencePoints[0].document;
-					int[] offsets = new int[sequencePoints.Count];
-					int[] lines = new int[sequencePoints.Count];
-					int[] columns = new int[sequencePoints.Count];
-					int[] endLines = new int[sequencePoints.Count];
-					int[] endColumns = new int[sequencePoints.Count];
-					for (int i = 0; i < sequencePoints.Count; i++)
+					ISymbolDocumentWriter document = sequencePoints[pos].document;
+					int count = 1;
+					while (pos + count < sequencePoints.Count && sequencePoints[pos + count].document == document)
+						++count;
+					int[] offsets = new int[count];
+					int[] lines = new int[count];
+					int[] columns = new int[count];
+					int[] endLines = new int[count];
+					int[] endColumns = new int[count];
+					for (int i = 0; i < count; ++i)
 					{
-						if (sequencePoints[i].document != document)
-						{
-							throw new NotImplementedException();
-						}
-						offsets[i] = sequencePoints[i].offset;
-						lines[i] = sequencePoints[i].startLine;
-						columns[i] = sequencePoints[i].startColumn;
-						endLines[i] = sequencePoints[i].endLine;
-						endColumns[i] = sequencePoints[i].endColumn;
+						offsets[i] = sequencePoints[pos + i].offset;
+						lines[i] = sequencePoints[pos + i].startLine;
+						columns[i] = sequencePoints[pos + i].startColumn;
+						endLines[i] = sequencePoints[pos + i].endLine;
+						endColumns[i] = sequencePoints[pos + i].endColumn;
 					}
 					moduleBuilder.symbolWriter.DefineSequencePoints(document, offsets, lines, columns, endLines, endColumns);
+					pos += count;
 				}
 
 				WriteScope(scope, localVarSigTok);
