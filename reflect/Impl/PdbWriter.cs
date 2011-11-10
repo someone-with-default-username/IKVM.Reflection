@@ -353,18 +353,33 @@ namespace IKVM.Reflection.Impl
 		private sealed class Method
 		{
 			internal readonly int token;
-			internal Document document;
-			internal int[] offsets;
-			internal int[] lines;
-			internal int[] columns;
-			internal int[] endLines;
-			internal int[] endColumns;
+			internal readonly List<MethodSequencePointsPart> sequencePointsParts = new List<MethodSequencePointsPart>();
 			internal readonly List<Scope> scopes = new List<Scope>();
 			internal readonly Stack<Scope> scopeStack = new Stack<Scope>();
 
 			internal Method(int token)
 			{
 				this.token = token;
+			}
+		}
+
+		private sealed class MethodSequencePointsPart
+		{
+			internal readonly Document document;
+			internal readonly int[] offsets;
+			internal readonly int[] lines;
+			internal readonly int[] columns;
+			internal readonly int[] endLines;
+			internal readonly int[] endColumns;
+
+			internal MethodSequencePointsPart(Document document, int[] offsets, int[] lines, int[] columns, int[] endLines, int[] endColumns)
+			{
+				this.document = document;
+				this.offsets = offsets;
+				this.lines = lines;
+				this.columns = columns;
+				this.endLines = endLines;
+				this.endColumns = endColumns;
 			}
 		}
 
@@ -392,12 +407,7 @@ namespace IKVM.Reflection.Impl
 
 		public void DefineSequencePoints(ISymbolDocumentWriter document, int[] offsets, int[] lines, int[] columns, int[] endLines, int[] endColumns)
 		{
-			currentMethod.document = (Document)document;
-			currentMethod.offsets = offsets;
-			currentMethod.lines = lines;
-			currentMethod.columns = columns;
-			currentMethod.endLines = endLines;
-			currentMethod.endColumns = endColumns;
+			currentMethod.sequencePointsParts.Add(new MethodSequencePointsPart((Document)document, offsets, lines, columns, endLines, endColumns));
 		}
 
 		public int OpenScope(int startOffset)
@@ -462,10 +472,10 @@ namespace IKVM.Reflection.Impl
 				int remappedToken = method.token;
 				remap.TryGetValue(remappedToken, out remappedToken);
 				symUnmanagedWriter.OpenMethod(remappedToken);
-				if (method.document != null)
+				foreach (MethodSequencePointsPart part in method.sequencePointsParts)
 				{
-					ISymUnmanagedDocumentWriter doc = method.document.GetUnmanagedDocument(symUnmanagedWriter);
-					symUnmanagedWriter.DefineSequencePoints(doc, method.offsets.Length, method.offsets, method.lines, method.columns, method.endLines, method.endColumns);
+					ISymUnmanagedDocumentWriter doc = part.document.GetUnmanagedDocument(symUnmanagedWriter);
+					symUnmanagedWriter.DefineSequencePoints(doc, part.offsets.Length, part.offsets, part.lines, part.columns, part.endLines, part.endColumns);
 				}
 				foreach (Scope scope in method.scopes)
 				{
